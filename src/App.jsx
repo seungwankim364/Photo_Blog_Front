@@ -2,68 +2,20 @@ import { useState } from 'react';
 import { ImageWithFallback } from './components/figma/ImageWithFallback';
 import { UploadPage } from './components/UploadPage';
 
-const initialPhotos = [
-  {
-    id: 1,
-    title: 'Minimal Architecture',
-    description: 'Calm lines and soft light.',
-    imageUrls: [
-      'https://images.unsplash.com/photo-1755678300059-11157219ba3c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsJTIwYXJjaGl0ZWN0dXJlJTIwYnVpbGRpbmd8ZW58MXx8fHwxNzcwMjE2OTUxfDA&ixlib=rb-4.1.0&q=80&w=1080'
-    ],
-    date: '2026.02.03'
-  },
-  {
-    id: 2,
-    title: 'Mountain Light',
-    description: 'A quiet ridge in the afternoon.',
-    imageUrls: [
-      'https://images.unsplash.com/photo-1600257729950-13a634d32697?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuYXR1cmUlMjBsYW5kc2NhcGUlMjBtb3VudGFpbnN8ZW58MXx8fHwxNzcwMjAxMTczfDA&ixlib=rb-4.1.0&q=80&w=1080'
-    ],
-    date: '2026.02.02'
-  },
-  {
-    id: 3,
-    title: 'Coffee Break',
-    description: 'A slow moment with a warm cup.',
-    imageUrls: [
-      'https://images.unsplash.com/photo-1599070638980-a609b4ec10fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2ZmZWUlMjBjdXAlMjBtaW5pbWFsfGVufDF8fHx8MTc3MDI1ODQ0NHww&ixlib=rb-4.1.0&q=80&w=1080'
-    ],
-    date: '2026.02.01'
-  },
-  {
-    id: 4,
-    title: 'Ocean Sunset',
-    description: 'Evening waves and fading light.',
-    imageUrls: [
-      'https://images.unsplash.com/photo-1604580826271-aa59d10b875a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvY2VhbiUyMHdhdmVzJTIwc3Vuc2V0fGVufDF8fHx8MTc3MDI2MjU2OHww&ixlib=rb-4.1.0&q=80&w=1080'
-    ],
-    date: '2026.01.30'
-  },
-  {
-    id: 5,
-    title: 'City Street',
-    description: 'Everyday movement and rhythm.',
-    imageUrls: [
-      'https://images.unsplash.com/photo-1762436933065-fe6d7f51d4f3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaXR5JTIwc3RyZWV0JTIwcGhvdG9ncmFwaHl8ZW58MXx8fHwxNzcwMjcyNzk0fDA&ixlib=rb-4.1.0&q=80&w=1080'
-    ],
-    date: '2026.01.28'
-  },
-  {
-    id: 6,
-    title: 'Forest Calm',
-    description: 'Still air under tall trees.',
-    imageUrls: [
-      'https://images.unsplash.com/photo-1641975156937-9ed56d1a426f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmb3Jlc3QlMjB0cmVlcyUyMG5hdHVyZXxlbnwxfHx8fDE3NzAyNjkyNzR8MA&ixlib=rb-4.1.0&q=80&w=1080'
-    ],
-    date: '2026.01.25'
-  }
-];
-
 export default function App() {
   const [currentPage, setCurrentPage] = useState('main');
-  const [photos, setPhotos] = useState(initialPhotos);
+  const [photos, setPhotos] = useState([]);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+
+   useEffect(() => {
+    fetch("http://localhost:3000/upload")
+      .then((res) => res.json())
+      .then((data) => {
+        setPhotos(data);
+      })
+      .catch((err) => console.error(err));
+  }, []);
 
   const handleUpload = (newPhoto) => {
     const photo = {
@@ -179,9 +131,9 @@ export default function App() {
                   </>
                 )}
                 <ImageWithFallback
-                  src={selectedPhoto.imageUrls[selectedPhotoIndex]}
-                  alt={selectedPhoto.title}
-                  className="w-full h-full object-contain"
+                  src={`http://localhost:3000/${photo.path}`}
+                  alt={photo.originalName}
+                  className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-4 right-6 text-xs text-gray-500 bg-white/80 rounded px-2 py-1">
                   {selectedPhotoIndex + 1}/{selectedPhoto.imageUrls.length}

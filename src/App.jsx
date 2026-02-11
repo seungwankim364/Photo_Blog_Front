@@ -1,6 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ImageWithFallback } from './components/figma/ImageWithFallback';
 import { UploadPage } from './components/UploadPage';
+
+function normalizePhoto(photo, index = 0) {
+  const paths = Array.isArray(photo.path)
+    ? photo.path
+    : photo.path
+      ? [photo.path]
+      : [];
+
+  const idSource = photo.id ?? photo._id;
+  const id =
+    typeof idSource === 'string'
+      ? idSource
+      : idSource && typeof idSource.toString === 'function'
+        ? idSource.toString()
+        : `${paths[0] ?? 'photo'}-${photo.date ?? 'no-date'}-${index}`;
+
+  return {
+    ...photo,
+    id,
+    paths,
+  };
+}
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('main');
@@ -8,23 +30,47 @@ export default function App() {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
 
-   useEffect(() => {
-    fetch("http://localhost:3000/upload")
+  useEffect(() => {
+    fetch('http://localhost:3000/upload')
       .then((res) => res.json())
       .then((data) => {
-        setPhotos(data);
+        const normalized = data.map((photo, index) => normalizePhoto(photo, index));
+        setPhotos(normalized);
       })
       .catch((err) => console.error(err));
   }, []);
 
-  const handleUpload = (newPhoto) => {
-    const photo = {
-      ...newPhoto,
-      id: Date.now()
-    };
-    setPhotos([photo, ...photos]);
-    setSelectedPhotoIndex(0);
-    setCurrentPage('main');
+  const handleUpload = async ({ title, description, date, files }) => {
+    const uploadRequests = files.map(async (file) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('date', date);
+
+      const response = await fetch('http://localhost:3000/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed (${response.status})`);
+      }
+
+      const payload = await response.json();
+      return payload.photo;
+    });
+
+    try {
+      const uploaded = await Promise.all(uploadRequests);
+      const normalizedUploaded = uploaded.map((photo, index) => normalizePhoto(photo, index));
+      setPhotos((prev) => [...normalizedUploaded, ...prev]);
+      setSelectedPhotoIndex(0);
+      setCurrentPage('main');
+    } catch (err) {
+      console.error(err);
+      alert('Upload failed. Please try again.');
+    }
   };
 
   if (currentPage === 'upload') {
@@ -33,7 +79,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
       <header className="py-12 border-b border-gray-100">
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between">
           <div>
@@ -49,12 +94,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* Photo Grid */}
       <main className="max-w-5xl mx-auto px-4 py-16">
-        <div
-          className="grid grid-cols-3 gap-8"
-          style={{ marginLeft: 'auto', marginRight: 'auto' }}
-        >
+        <div className="grid grid-cols-3 gap-8" style={{ marginLeft: 'auto', marginRight: 'auto' }}>
           {photos.map((photo) => (
             <article
               key={photo.id}
@@ -67,13 +108,18 @@ export default function App() {
             >
               <div
                 className="overflow-hidden bg-gray-50 mb-4 rounded-xl border border-gray-100"
-                style={{ width: '100%', height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{
+                  width: '100%',
+                  height: '220px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               >
                 <ImageWithFallback
-                  src={photo.imageUrls[0]}
-                  alt={photo.title}
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  style={{ width: '100%', height: '100%' }}
+                  src={`http://localhost:3000/${photo.paths[0] ?? ''}`}
+                  alt={photo.originalName}
+                  className="w-full h-full object-cover"
                 />
               </div>
               <div className="space-y-1 w-full text-center">
@@ -86,7 +132,6 @@ export default function App() {
         </div>
       </main>
 
-      {/* Modal */}
       {selectedPhoto && (
         <div
           className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-8"
@@ -103,12 +148,12 @@ export default function App() {
               </button>
 
               <div className="relative bg-gray-50 rounded-xl px-12 py-6 h-[70vh] max-h-[70vh] flex items-center justify-center">
-                {selectedPhoto.imageUrls.length > 1 && (
+                {selectedPhoto.paths.length > 1 && (
                   <>
                     <button
                       onClick={() =>
                         setSelectedPhotoIndex((prev) =>
-                          prev === 0 ? selectedPhoto.imageUrls.length - 1 : prev - 1
+                          prev === 0 ? selectedPhoto.paths.length - 1 : prev - 1
                         )
                       }
                       className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors leading-none"
@@ -119,10 +164,9 @@ export default function App() {
                     <button
                       onClick={() =>
                         setSelectedPhotoIndex((prev) =>
-                          prev === selectedPhoto.imageUrls.length - 1 ? 0 : prev + 1
+                          prev === selectedPhoto.paths.length - 1 ? 0 : prev + 1
                         )
                       }
-                    
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors leading-none"
                       aria-label="Next photo"
                     >
@@ -131,12 +175,12 @@ export default function App() {
                   </>
                 )}
                 <ImageWithFallback
-                  src={`http://localhost:3000/${photo.path}`}
-                  alt={photo.originalName}
+                  src={`http://localhost:3000/${selectedPhoto.paths[selectedPhotoIndex] ?? ''}`}
+                  alt={selectedPhoto.originalName}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-4 right-6 text-xs text-gray-500 bg-white/80 rounded px-2 py-1">
-                  {selectedPhotoIndex + 1}/{selectedPhoto.imageUrls.length}
+                  {selectedPhotoIndex + 1}/{Math.max(selectedPhoto.paths.length, 1)}
                 </div>
               </div>
 

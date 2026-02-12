@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ImageWithFallback } from './components/figma/ImageWithFallback';
 import { UploadPage } from './components/UploadPage';
+import { AuthPage } from './components/AuthPage';
 
 function normalizePhoto(photo, index = 0) {
   const paths = Array.isArray(photo.path)
@@ -29,6 +30,7 @@ export default function App() {
   const [photos, setPhotos] = useState([]);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+  const [authToken, setAuthToken] = useState(() => localStorage.getItem('token') || '');
 
   useEffect(() => {
     fetch('http://localhost:3000/upload')
@@ -40,7 +42,28 @@ export default function App() {
       .catch((err) => console.error(err));
   }, []);
 
+  const handleAuthSuccess = (payload) => {
+    localStorage.setItem('token', payload.token);
+    localStorage.setItem('user', JSON.stringify(payload.user));
+    setAuthToken(payload.token);
+    setCurrentPage('main');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setAuthToken('');
+    setCurrentPage('main');
+    setSelectedPhoto(null);
+    setSelectedPhotoIndex(0);
+  };
+
   const handleUpload = async ({ title, description, date, files }) => {
+    if (!authToken) {
+      setCurrentPage('auth');
+      return;
+    }
+
     const uploadRequests = files.map(async (file) => {
       const formData = new FormData();
       formData.append('image', file);
@@ -50,8 +73,16 @@ export default function App() {
 
       const response = await fetch('http://localhost:3000/upload', {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
         body: formData,
       });
+
+      if (response.status === 401) {
+        handleLogout();
+        throw new Error('Session expired. Please log in again.');
+      }
 
       if (!response.ok) {
         throw new Error(`Upload failed (${response.status})`);
@@ -69,9 +100,48 @@ export default function App() {
       setCurrentPage('main');
     } catch (err) {
       console.error(err);
-      alert('Upload failed. Please try again.');
+      alert(err.message || 'Upload failed. Please try again.');
     }
   };
+
+  const handleDelete = async (id) => {
+    if (!authToken) {
+      setCurrentPage('auth');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3000/upload/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      if (response.status === 401) {
+        handleLogout();
+        throw new Error('Session expired. Please log in again.');
+      }
+
+      if (!response.ok) {
+        throw new Error(`Delete failed (${response.status})`);
+      }
+
+      setPhotos((prev) => prev.filter((photo) => photo.id !== id));
+
+      if (selectedPhoto?.id === id) {
+        setSelectedPhoto(null);
+        setSelectedPhotoIndex(0);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Delete failed. Please try again.');
+    }
+  };
+
+  if (!authToken || currentPage === 'auth') {
+    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+  }
 
   if (currentPage === 'upload') {
     return <UploadPage onUpload={handleUpload} onBack={() => setCurrentPage('main')} />;
@@ -85,12 +155,20 @@ export default function App() {
             <h1 className="text-2xl tracking-tight mb-2">Wani Journal</h1>
             <p className="text-sm text-gray-500">Daily moments, captured simply.</p>
           </div>
-          <button
-            onClick={() => setCurrentPage('upload')}
-            className="text-sm text-gray-400 hover:text-black transition-colors"
-          >
-            + Add Photo
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={() => setCurrentPage('upload')}
+              className="text-sm text-gray-400 hover:text-black transition-colors"
+            >
+              + Add Photo
+            </button>
+            <button
+              onClick={handleLogout}
+              className="text-sm text-gray-400 hover:text-black transition-colors"
+            >
+              - Logout
+            </button>
+          </div>
         </div>
       </header>
 
@@ -145,6 +223,13 @@ export default function App() {
                 aria-label="Close"
               >
                 X
+              </button>
+
+              <button
+                onClick={() => handleDelete(selectedPhoto.id)}
+                className="absolute left-4 top-4 text-sm text-red-500 hover:text-red-700 transition-colors"
+              >
+                Delete
               </button>
 
               <div className="relative bg-gray-50 rounded-xl px-12 py-6 h-[70vh] max-h-[70vh] flex items-center justify-center">

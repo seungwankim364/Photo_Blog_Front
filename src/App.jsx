@@ -33,14 +33,32 @@ export default function App() {
   const [authToken, setAuthToken] = useState(() => localStorage.getItem('token') || '');
 
   useEffect(() => {
-    fetch('http://localhost:3000/upload')
-      .then((res) => res.json())
+    if (!authToken) {
+      setPhotos([]);
+      return;
+    }
+
+    fetch('http://localhost:3000/upload', {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    })
+      .then((res) => {
+        if (res.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setAuthToken('');
+          setCurrentPage('auth');
+          throw new Error('Session expired. Please log in again.');
+        }
+        return res.json();
+      })
       .then((data) => {
         const normalized = data.map((photo, index) => normalizePhoto(photo, index));
         setPhotos(normalized);
       })
       .catch((err) => console.error(err));
-  }, []);
+  }, [authToken]);
 
   const handleAuthSuccess = (payload) => {
     localStorage.setItem('token', payload.token);
@@ -53,6 +71,7 @@ export default function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setAuthToken('');
+    setPhotos([]);
     setCurrentPage('main');
     setSelectedPhoto(null);
     setSelectedPhotoIndex(0);

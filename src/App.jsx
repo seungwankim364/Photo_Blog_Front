@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ImageWithFallback } from './components/figma/ImageWithFallback';
 import { UploadPage } from './components/UploadPage';
 import { AuthPage } from './components/AuthPage';
+import { API_BASE_URL, buildApiUrl, parseJsonOrThrow } from './utils/api';
 
 function normalizePhoto(photo, index = 0) {
   const paths = Array.isArray(photo.path)
@@ -38,12 +39,12 @@ export default function App() {
       return;
     }
 
-    fetch('http://localhost:3000/upload', {
+    fetch(buildApiUrl('/upload'), {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
     })
-      .then((res) => {
+      .then(async (res) => {
         if (res.status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
@@ -51,13 +52,17 @@ export default function App() {
           setCurrentPage('auth');
           throw new Error('Session expired. Please log in again.');
         }
-        return res.json();
+        return parseJsonOrThrow(res, 'Failed to load photos');
       })
       .then((data) => {
-        const normalized = data.map((photo, index) => normalizePhoto(photo, index));
+        const list = Array.isArray(data) ? data : [];
+        const normalized = list.map((photo, index) => normalizePhoto(photo, index));
         setPhotos(normalized);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        alert(err.message || 'Failed to load photos');
+      });
   }, [authToken]);
 
   const handleAuthSuccess = (payload) => {
@@ -90,7 +95,7 @@ export default function App() {
       formData.append('description', description);
       formData.append('date', date);
 
-      const response = await fetch('http://localhost:3000/upload', {
+      const response = await fetch(buildApiUrl('/upload'), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -103,11 +108,7 @@ export default function App() {
         throw new Error('Session expired. Please log in again.');
       }
 
-      if (!response.ok) {
-        throw new Error(`Upload failed (${response.status})`);
-      }
-
-      const payload = await response.json();
+      const payload = await parseJsonOrThrow(response, 'Upload failed');
       return payload.photo;
     });
 
@@ -130,7 +131,7 @@ export default function App() {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/upload/${id}`, {
+      const response = await fetch(buildApiUrl(`/upload/${id}`), {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -142,9 +143,7 @@ export default function App() {
         throw new Error('Session expired. Please log in again.');
       }
 
-      if (!response.ok) {
-        throw new Error(`Delete failed (${response.status})`);
-      }
+      await parseJsonOrThrow(response, 'Delete failed');
 
       setPhotos((prev) => prev.filter((photo) => photo.id !== id));
 
@@ -214,7 +213,7 @@ export default function App() {
                 }}
               >
                 <ImageWithFallback
-                  src={`http://localhost:3000/${photo.paths[0] ?? ''}`}
+                  src={`${API_BASE_URL}/${photo.paths[0] ?? ''}`}
                   alt={photo.originalName}
                   className="w-full h-full object-cover"
                 />
@@ -279,7 +278,7 @@ export default function App() {
                   </>
                 )}
                 <ImageWithFallback
-                  src={`http://localhost:3000/${selectedPhoto.paths[selectedPhotoIndex] ?? ''}`}
+                  src={`${API_BASE_URL}/${selectedPhoto.paths[selectedPhotoIndex] ?? ''}`}
                   alt={selectedPhoto.originalName}
                   className="w-full h-full object-cover"
                 />

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { buildApiUrl, parseJsonOrThrow } from '../utils/api';
 
 export function AuthPage({ onAuthSuccess }) {
   const [mode, setMode] = useState('login');
@@ -24,7 +25,7 @@ export function AuthPage({ onAuthSuccess }) {
     try {
       setIsSubmitting(true);
 
-      const response = await fetch(`http://localhost:3000/auth/${isSignup ? 'signup' : 'login'}`, {
+      const response = await fetch(buildApiUrl(`/auth/${isSignup ? 'signup' : 'login'}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,11 +37,7 @@ export function AuthPage({ onAuthSuccess }) {
         ),
       });
 
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload?.error || 'Authentication failed');
-      }
+      const payload = await parseJsonOrThrow(response, 'Authentication failed');
 
       if (isSignup) {
         setMode('login');

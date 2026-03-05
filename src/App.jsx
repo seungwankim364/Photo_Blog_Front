@@ -5,11 +5,22 @@ import { AuthPage } from './components/AuthPage';
 import { API_BASE_URL, buildApiUrl, parseJsonOrThrow } from './utils/api';
 
 function normalizePhoto(photo, index = 0) {
-  const paths = Array.isArray(photo.urls)
-    ? photo.urls
-    : photo.urls
-      ? [photo.urls]
-      : [];
+  const rawUrls = photo.urls ?? photo.path ?? photo.paths ?? [];
+  const urlList = Array.isArray(rawUrls) ? rawUrls : rawUrls ? [rawUrls] : [];
+  const urls = urlList
+    .map((url) => {
+      if (typeof url !== 'string' || !url.trim()) {
+        return '';
+      }
+
+      if (/^https?:\/\//i.test(url)) {
+        return url;
+      }
+
+      const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+      return `${API_BASE_URL}${normalizedPath}`;
+    })
+    .filter(Boolean);
 
   const idSource = photo.id ?? photo._id;
   const id =
@@ -17,12 +28,12 @@ function normalizePhoto(photo, index = 0) {
       ? idSource
       : idSource && typeof idSource.toString === 'function'
         ? idSource.toString()
-        : `${paths[0] ?? 'photo'}-${photo.date ?? 'no-date'}-${index}`;
+        : `-${photo.date ?? 'no-date'}-${index}`;
 
   return {
     ...photo,
     id,
-    paths,
+    urls,
   };
 }
 
@@ -214,7 +225,7 @@ export default function App() {
                 }}
               >
                 <ImageWithFallback
-                  src={photo.urls ?? ''}
+                  src={photo.urls[0] ?? ''}
                   alt={photo.originalName}
                   className="w-full h-full object-cover"
                 />
@@ -300,3 +311,6 @@ export default function App() {
     </div>
   );
 }
+
+
+

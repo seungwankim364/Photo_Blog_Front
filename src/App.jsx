@@ -5,10 +5,10 @@ import { AuthPage } from './components/AuthPage';
 import { API_BASE_URL, buildApiUrl, parseJsonOrThrow } from './utils/api';
 
 function normalizePhoto(photo, index = 0) {
-  const paths = Array.isArray(photo.path)
-    ? photo.path
-    : photo.path
-      ? [photo.path]
+  const paths = Array.isArray(photo.urls)
+    ? photo.urls
+    : photo.urls
+      ? [photo.urls]
       : [];
 
   const idSource = photo.id ?? photo._id;
@@ -214,7 +214,7 @@ export default function App() {
                 }}
               >
                 <ImageWithFallback
-                  src={`${API_BASE_URL}/${photo.paths[0] ?? ''}`}
+                  src={`${API_BASE_URL}/${photo.urls[0] ?? ''}`}
                   alt={photo.originalName}
                   className="w-full h-full object-cover"
                 />
@@ -252,12 +252,12 @@ export default function App() {
               </button>
 
               <div className="relative bg-gray-50 rounded-xl px-12 py-6 h-[70vh] max-h-[70vh] flex items-center justify-center">
-                {selectedPhoto.paths.length > 1 && (
+                {selectedPhoto.urls.length > 1 && (
                   <>
                     <button
                       onClick={() =>
                         setSelectedPhotoIndex((prev) =>
-                          prev === 0 ? selectedPhoto.paths.length - 1 : prev - 1
+                          prev === 0 ? selectedPhoto.urls.length - 1 : prev - 1
                         )
                       }
                       className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors leading-none"
@@ -268,7 +268,7 @@ export default function App() {
                     <button
                       onClick={() =>
                         setSelectedPhotoIndex((prev) =>
-                          prev === selectedPhoto.paths.length - 1 ? 0 : prev + 1
+                          prev === selectedPhoto.urls.length - 1 ? 0 : prev + 1
                         )
                       }
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors leading-none"
@@ -279,12 +279,12 @@ export default function App() {
                   </>
                 )}
                 <ImageWithFallback
-                  src={`${API_BASE_URL}/${selectedPhoto.paths[selectedPhotoIndex] ?? ''}`}
+                  src={`${API_BASE_URL}/${selectedPhoto.urls[selectedPhotoIndex] ?? ''}`}
                   alt={selectedPhoto.originalName}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-4 right-6 text-xs text-gray-500 bg-white/80 rounded px-2 py-1">
-                  {selectedPhotoIndex + 1}/{Math.max(selectedPhoto.paths.length, 1)}
+                  {selectedPhotoIndex + 1}/{Math.max(selectedPhoto.urls.length, 1)}
                 </div>
               </div>
 

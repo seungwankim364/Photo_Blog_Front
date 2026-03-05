@@ -26,6 +26,7 @@ function normalizePhoto(photo, index = 0) {
   };
 }
 
+
 export default function App() {
   const [currentPage, setCurrentPage] = useState('main');
   const [photos, setPhotos] = useState([]);

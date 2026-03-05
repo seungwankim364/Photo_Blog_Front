@@ -214,7 +214,7 @@ export default function App() {
                 }}
               >
                 <ImageWithFallback
-                  src={`${API_BASE_URL}/${photo.urls[0] ?? ''}`}
+                  src={photo.urls ?? ''}
                   alt={photo.originalName}
                   className="w-full h-full object-cover"
                 />
@@ -279,7 +279,7 @@ export default function App() {
                   </>
                 )}
                 <ImageWithFallback
-                  src={`${API_BASE_URL}/${selectedPhoto.urls[selectedPhotoIndex] ?? ''}`}
+                  src={selectedPhoto.urls[selectedPhotoIndex] ?? ''}
                   alt={selectedPhoto.originalName}
                   className="w-full h-full object-cover"
                 />

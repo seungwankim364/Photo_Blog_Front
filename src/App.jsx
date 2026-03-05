@@ -28,7 +28,7 @@ function normalizePhoto(photo, index = 0) {
       ? idSource
       : idSource && typeof idSource.toString === 'function'
         ? idSource.toString()
-        : `-${photo.date ?? 'no-date'}-${index}`;
+        : `${urls[0] ?? 'photo'}-${photo.date ?? 'no-date'}-${index}`;
 
   return {
     ...photo,

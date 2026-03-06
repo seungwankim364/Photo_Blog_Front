@@ -17,6 +17,11 @@ function normalizePhoto(photo, index = 0) {
         return url;
       }
 
+      // Handle protocol-less CDN links like "xxxx.cloudfront.net/uploads/a.png".
+      if (/^[a-z0-9-]+\.cloudfront\.net\//i.test(url)) {
+        return `https://${url}`;
+      }
+
       const normalizedPath = url.startsWith('/') ? url : `/${url}`;
       return `${API_BASE_URL}${normalizedPath}`;
     })

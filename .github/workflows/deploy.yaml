@@ -41,4 +41,5 @@ jobs:
       - name: CloudFront Invalidation
         run: |
           # CloudFront 캐시를 강제로 비워 새 파일을 즉시 반영합니다.
-          aws cloudfront create-invalidation --distribution-id E3BV7I676ZG6WM --paths "/*"
+          aws cloudfront create-invalidation --distribution-id E2YU1O273FCJ16 --paths "/*"
+      
